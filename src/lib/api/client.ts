@@ -29,4 +29,42 @@ export const api = {
 
   toggleTask: (sectionId: string, taskId: string, token: string) =>
     apiFetch<Task>(`/sections/${sectionId}/tasks/${taskId}/toggle`, token, { method: 'PUT' }),
+
+  createTask: (
+    sectionId: string,
+    data: {
+      title: string
+      type: 'ONE_TIME' | 'RECURRING'
+      dueDate?: string | null
+      frequency?: 'DAILY' | 'SPECIFIC_DAYS' | null
+      daysOfWeek?: string[] | null
+    },
+    token: string
+  ) =>
+    apiFetch<Task>(`/sections/${sectionId}/tasks`, token, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateTask: (
+    sectionId: string,
+    taskId: string,
+    data: {
+      title: string
+      type: 'ONE_TIME' | 'RECURRING'
+      dueDate?: string | null
+      frequency?: 'DAILY' | 'SPECIFIC_DAYS' | null
+      daysOfWeek?: string[] | null
+    },
+    token: string
+  ) =>
+    apiFetch<Task>(`/sections/${sectionId}/tasks/${taskId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteTask: (sectionId: string, taskId: string, token: string) =>
+    apiFetch<void>(`/sections/${sectionId}/tasks/${taskId}`, token, {
+      method: 'DELETE',
+    }),
 }
