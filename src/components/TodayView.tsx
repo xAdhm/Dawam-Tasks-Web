@@ -28,6 +28,7 @@ const urgencyClasses: Record<string, string> = {
 export default function TodayView({ sectionsWithTasks: initial, token, userEmail }: Props) {
   const [sectionsWithTasks, setSectionsWithTasks] = useState(initial)
   const [addingToSectionId, setAddingToSectionId] = useState<string | null>(null)
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
   const { theme, setTheme } = useTheme()
 
   async function handleToggle(sectionId: string, taskId: string) {
@@ -57,6 +58,26 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
     setSectionsWithTasks((prev) =>
       prev.map((s) => (s.section.id !== sectionId ? s : { ...s, tasks: [...s.tasks, task] }))
     )
+  }
+
+  async function handleDelete(sectionId: string, taskId: string) {
+    setDeletingTaskId(taskId)
+    const prevState = sectionsWithTasks
+
+    setSectionsWithTasks((prev) =>
+      prev.map((s) =>
+        s.section.id !== sectionId ? s : { ...s, tasks: s.tasks.filter((t) => t.id !== taskId) }
+      )
+    )
+
+    try {
+      await api.deleteTask(sectionId, taskId, token)
+    } catch (err) {
+      setSectionsWithTasks(prevState)
+      console.error('Delete failed', err)
+    } finally {
+      setDeletingTaskId(null)
+    }
   }
 
   const todayName = new Date().toLocaleDateString(undefined, {
@@ -105,12 +126,12 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
                   <p className="px-4 py-4 text-sm text-[var(--text-dim)]">No tasks yet</p>
                 )}
                 {tasks.map((task) => (
-                  <button
+                  <div
                     key={task.id}
-                    onClick={() => handleToggle(section.id, task.id)}
-                    className="flex w-full items-center gap-3 border-b border-[var(--border)] px-4 py-3 text-left last:border-b-0"
+                    className="group flex w-full items-center gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0"
                   >
-                    <span
+                    <button
+                      onClick={() => handleToggle(section.id, task.id)}
                       className={`flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border ${
                         task.doneToday ? 'bg-[var(--violet)] border-[var(--violet)]' : 'border-[var(--border)]'
                       }`}
@@ -118,10 +139,15 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
                       {task.doneToday && (
                         <span className="text-[10px] font-bold text-[var(--bg)]">✓</span>
                       )}
-                    </span>
-                    <span className={`flex-1 text-sm ${task.doneToday ? 'text-[var(--text-dim)] line-through' : ''}`}>
+                    </button>
+
+                    <button
+                      onClick={() => handleToggle(section.id, task.id)}
+                      className={`flex-1 text-left text-sm ${task.doneToday ? 'text-[var(--text-dim)] line-through' : ''}`}
+                    >
                       {task.title}
-                    </span>
+                    </button>
+
                     {task.dueDate && (
                       <span
                         className={`rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
@@ -131,7 +157,16 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
                         {dueLabel(task.dueDate)}
                       </span>
                     )}
-                  </button>
+
+                    <button
+                      onClick={() => handleDelete(section.id, task.id)}
+                      disabled={deletingTaskId === task.id}
+                      aria-label="Delete task"
+                      className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>
