@@ -24,6 +24,29 @@ async function apiFetch<T>(path: string, token: string, options: RequestInit = {
 export const api = {
   getSections: (token: string) => apiFetch<Section[]>('/sections', token),
 
+  createSection: (name: string, token: string) =>
+    apiFetch<Section>('/sections', token, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+
+  renameSection: (sectionId: string, name: string, token: string) =>
+    apiFetch<Section>(`/sections/${sectionId}`, token, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    }),
+
+  deleteSection: (sectionId: string, token: string) =>
+    apiFetch<void>(`/sections/${sectionId}`, token, {
+      method: 'DELETE',
+    }),
+
+  reorderSections: (orderedIds: string[], token: string) =>
+    apiFetch<Section[]>('/sections/reorder', token, {
+      method: 'PUT',
+      body: JSON.stringify(orderedIds),
+    }),
+
   getTasks: (sectionId: string, token: string) =>
     apiFetch<Task[]>(`/sections/${sectionId}/tasks`, token),
 

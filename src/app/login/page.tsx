@@ -38,7 +38,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message)
     } else {
-      setError('Check your email to confirm your account, or try logging in.')
+      setError('Account created — check your email for a confirmation link before logging in.')
     }
     setLoading(false)
   }

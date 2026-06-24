@@ -9,16 +9,20 @@ const DAYS: DayOfWeek[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 interface Props {
   sectionId: string
   token: string
-  onCreated: (task: Task) => void
+  task?: Task
+  onCreated?: (task: Task) => void
+  onUpdated?: (task: Task) => void
   onClose: () => void
 }
 
-export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Props) {
-  const [title, setTitle] = useState('')
-  const [type, setType] = useState<'ONE_TIME' | 'RECURRING'>('ONE_TIME')
-  const [dueDate, setDueDate] = useState('')
-  const [frequency, setFrequency] = useState<Frequency>('DAILY')
-  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([])
+export default function AddTaskForm({ sectionId, token, task, onCreated, onUpdated, onClose }: Props) {
+  const isEditing = !!task
+
+  const [title, setTitle] = useState(task?.title ?? '')
+  const [type, setType] = useState<'ONE_TIME' | 'RECURRING'>(task?.type ?? 'ONE_TIME')
+  const [dueDate, setDueDate] = useState(task?.dueDate ?? '')
+  const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? 'DAILY')
+  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(task?.daysOfWeek ?? [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,22 +45,25 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
     setSaving(true)
     setError(null)
 
+    const payload = {
+      title: title.trim(),
+      type,
+      dueDate: type === 'ONE_TIME' ? dueDate || null : null,
+      frequency: type === 'RECURRING' ? frequency : null,
+      daysOfWeek: type === 'RECURRING' && frequency === 'SPECIFIC_DAYS' ? selectedDays : null,
+    }
+
     try {
-      const task = await api.createTask(
-        sectionId,
-        {
-          title: title.trim(),
-          type,
-          dueDate: type === 'ONE_TIME' ? dueDate || null : null,
-          frequency: type === 'RECURRING' ? frequency : null,
-          daysOfWeek: type === 'RECURRING' && frequency === 'SPECIFIC_DAYS' ? selectedDays : null,
-        },
-        token
-      )
-      onCreated(task)
+      if (isEditing && task) {
+        const updated = await api.updateTask(sectionId, task.id, payload, token)
+        onUpdated?.(updated)
+      } else {
+        const created = await api.createTask(sectionId, payload, token)
+        onCreated?.(created)
+      }
       onClose()
     } catch (err) {
-      setError('Failed to create task')
+      setError(isEditing ? 'Failed to update task' : 'Failed to create task')
       console.error(err)
     } finally {
       setSaving(false)
@@ -65,15 +72,15 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="w-full max-w-md rounded-t-2xl bg-[#1B1C1F] p-5 sm:rounded-2xl">
-        <h3 className="mb-4 text-base font-semibold">New task</h3>
+      <div className="w-full max-w-md rounded-t-2xl bg-[var(--surface)] p-5 sm:rounded-2xl">
+        <h3 className="mb-4 text-base font-semibold">{isEditing ? 'Edit task' : 'New task'}</h3>
 
         <input
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Task title"
-          className="mb-3 w-full rounded-lg border border-[#2A2B30] bg-[#0D0E11] px-3 py-2 text-sm outline-none"
+          className="mb-3 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none"
         />
 
         <div className="mb-3 flex gap-2">
@@ -81,7 +88,7 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
             type="button"
             onClick={() => setType('ONE_TIME')}
             className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-              type === 'ONE_TIME' ? 'bg-[#8B7CF6] text-[#0D0E11]' : 'border border-[#2A2B30] text-[#8B8D93]'
+              type === 'ONE_TIME' ? 'bg-[var(--violet)] text-[var(--bg)]' : 'border border-[var(--border)] text-[var(--text-dim)]'
             }`}
           >
             One-time
@@ -90,7 +97,7 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
             type="button"
             onClick={() => setType('RECURRING')}
             className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-              type === 'RECURRING' ? 'bg-[#8B7CF6] text-[#0D0E11]' : 'border border-[#2A2B30] text-[#8B8D93]'
+              type === 'RECURRING' ? 'bg-[var(--violet)] text-[var(--bg)]' : 'border border-[var(--border)] text-[var(--text-dim)]'
             }`}
           >
             Recurring
@@ -100,9 +107,9 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
         {type === 'ONE_TIME' && (
           <input
             type="date"
-            value={dueDate}
+            value={dueDate ?? ''}
             onChange={(e) => setDueDate(e.target.value)}
-            className="mb-3 w-full rounded-lg border border-[#2A2B30] bg-[#0D0E11] px-3 py-2 text-sm outline-none"
+            className="mb-3 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none"
           />
         )}
 
@@ -113,7 +120,7 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
                 type="button"
                 onClick={() => setFrequency('DAILY')}
                 className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-                  frequency === 'DAILY' ? 'bg-[#2A2B30] text-[#E8E8EA]' : 'border border-[#2A2B30] text-[#8B8D93]'
+                  frequency === 'DAILY' ? 'bg-[var(--border)] text-[var(--text)]' : 'border border-[var(--border)] text-[var(--text-dim)]'
                 }`}
               >
                 Daily
@@ -122,7 +129,7 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
                 type="button"
                 onClick={() => setFrequency('SPECIFIC_DAYS')}
                 className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-                  frequency === 'SPECIFIC_DAYS' ? 'bg-[#2A2B30] text-[#E8E8EA]' : 'border border-[#2A2B30] text-[#8B8D93]'
+                  frequency === 'SPECIFIC_DAYS' ? 'bg-[var(--border)] text-[var(--text)]' : 'border border-[var(--border)] text-[var(--text-dim)]'
                 }`}
               >
                 Specific days
@@ -138,8 +145,8 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
                     onClick={() => toggleDay(day)}
                     className={`rounded-md px-2.5 py-1.5 text-xs font-medium ${
                       selectedDays.includes(day)
-                        ? 'bg-[#8FC1F0] text-[#0D0E11]'
-                        : 'border border-[#2A2B30] text-[#8B8D93]'
+                        ? 'bg-[var(--blue)] text-[var(--bg)]'
+                        : 'border border-[var(--border)] text-[var(--text-dim)]'
                     }`}
                   >
                     {day}
@@ -150,21 +157,21 @@ export default function AddTaskForm({ sectionId, token, onCreated, onClose }: Pr
           </>
         )}
 
-        {error && <p className="mb-3 text-sm text-[#8FC1F0]">{error}</p>}
+        {error && <p className="mb-3 text-sm text-[var(--blue)]">{error}</p>}
 
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={saving}
-            className="flex-1 rounded-lg bg-[#8B7CF6] px-3 py-2 text-sm font-medium text-[#0D0E11]"
+            className="flex-1 rounded-lg bg-[var(--violet)] px-3 py-2 text-sm font-medium text-[var(--bg)]"
           >
-            {saving ? 'Saving...' : 'Add task'}
+            {saving ? 'Saving...' : isEditing ? 'Save changes' : 'Add task'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[#2A2B30] px-4 py-2 text-sm"
+            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm"
           >
             Cancel
           </button>
