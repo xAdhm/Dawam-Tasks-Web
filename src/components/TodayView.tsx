@@ -32,6 +32,7 @@ interface Props {
   sectionsWithTasks: SectionWithTasks[]
   token: string
   userEmail: string
+  displayName: string
 }
 
 const urgencyClasses: Record<string, string> = {
@@ -72,7 +73,7 @@ function SortableSection({
   )
 }
 
-export default function TodayView({ sectionsWithTasks: initial, token, userEmail }: Props) {
+export default function TodayView({ sectionsWithTasks: initial, token, userEmail, displayName }: Props) {
   const [sectionsWithTasks, setSectionsWithTasks] = useState(initial)
   const [addingToSectionId, setAddingToSectionId] = useState<string | null>(null)
   const [editingTask, setEditingTask] = useState<{ sectionId: string; task: Task } | null>(null)
@@ -220,7 +221,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 md:max-w-4xl">
         <header className="mb-6 flex items-baseline justify-between sm:mb-8">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Yallah, {userEmail.split('@')[0]}
+            Yallah, {displayName}
           </h1>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[var(--text-dim)] sm:text-sm">{todayName}</span>

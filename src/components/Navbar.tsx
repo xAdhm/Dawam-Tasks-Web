@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function Navbar({ userEmail }: { userEmail: string }) {
+export default function Navbar({ userEmail, displayName }: { userEmail: string; displayName: string }) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -37,7 +37,7 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="hidden text-xs text-[var(--text-dim)] sm:inline">{userEmail}</span>
+          <span className="hidden text-xs text-[var(--text-dim)] sm:inline">{displayName}</span>
           <button
             onClick={handleLogout}
             className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-dim)]"

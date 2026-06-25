@@ -15,6 +15,8 @@ export default async function Home() {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session!.access_token
 
+  const displayName = user.user_metadata?.display_name || user.email!.split('@')[0]
+
   const sections = await api.getSections(token)
 
   const sectionsWithTasks = await Promise.all(
@@ -26,8 +28,8 @@ export default async function Home() {
 
   return (
     <>
-      <Navbar userEmail={user.email!} />
-      <TodayView sectionsWithTasks={sectionsWithTasks} token={token} userEmail={user.email!} />
+      <Navbar userEmail={user.email!} displayName={displayName} />
+      <TodayView sectionsWithTasks={sectionsWithTasks} token={token} userEmail={user.email!} displayName={displayName} />
     </>
   )
 }

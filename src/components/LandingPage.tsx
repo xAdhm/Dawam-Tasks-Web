@@ -25,12 +25,20 @@ export default function LandingPage() {
         Daily routines and deadlines, in one place. Yallah, let's get consistent.
       </p>
 
-      <Link
-        href="/login"
-        className="rounded-lg bg-[#8B7CF6] px-5 py-2.5 text-sm font-medium text-[#0D0E11]"
-      >
-        Get started
-      </Link>
+      <div className="flex gap-3">
+        <Link
+          href="/signup"
+          className="rounded-lg bg-[#8B7CF6] px-5 py-2.5 text-sm font-medium text-[#0D0E11]"
+        >
+          Get started
+        </Link>
+        <Link
+          href="/login"
+          className="rounded-lg border border-[#2A2B30] px-5 py-2.5 text-sm font-medium text-[#E8E8EA]"
+        >
+          Log in
+        </Link>
+      </div>
     </div>
   )
 }
