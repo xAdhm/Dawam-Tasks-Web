@@ -33,7 +33,7 @@ interface Props {
   token: string
   userEmail: string
   displayName: string
-  showWelcomeBanner?: boolean
+  bannerType?: 'welcome' | 'passwordReset' | null
 }
 
 const urgencyClasses: Record<string, string> = {
@@ -41,6 +41,11 @@ const urgencyClasses: Record<string, string> = {
   soon: 'bg-[var(--blue)] text-[var(--bg)]',
   near: 'bg-[var(--border)] text-[var(--text-dim)]',
   far: 'bg-[var(--border)] text-[var(--text-dim)]',
+}
+
+const bannerMessages: Record<string, string> = {
+  welcome: 'Your email is verified — welcome to Dawam!',
+  passwordReset: 'Your password has been reset successfully.',
 }
 
 function SortableSection({
@@ -74,7 +79,7 @@ function SortableSection({
   )
 }
 
-export default function TodayView({ sectionsWithTasks: initial, token, userEmail, displayName, showWelcomeBanner }: Props) {
+export default function TodayView({ sectionsWithTasks: initial, token, userEmail, displayName, bannerType }: Props) {
   const [sectionsWithTasks, setSectionsWithTasks] = useState(initial)
   const [addingToSectionId, setAddingToSectionId] = useState<string | null>(null)
   const [editingTask, setEditingTask] = useState<{ sectionId: string; task: Task } | null>(null)
@@ -221,9 +226,9 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 md:max-w-4xl">
-        {showWelcomeBanner && !bannerDismissed && (
+        {bannerType && !bannerDismissed && (
           <div className="mb-5 flex items-center justify-between rounded-lg border border-[var(--violet)] bg-[var(--violet)]/10 px-4 py-2.5 text-sm">
-            <span>Your email is verified — welcome to Dawam!</span>
+            <span>{bannerMessages[bannerType]}</span>
             <button
               onClick={() => setBannerDismissed(true)}
               aria-label="Dismiss"

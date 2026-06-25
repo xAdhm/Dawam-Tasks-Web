@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
       return
     }
     if (password !== confirmPassword) {
-      setError("Passwords don't match")
+      setError('Passwords don\'t match')
       return
     }
 
@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      router.push('/')
+      router.push('/?passwordReset=true')
       router.refresh()
     }
   }

@@ -7,7 +7,7 @@ import LandingPage from '@/components/LandingPage'
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string }>
+  searchParams: Promise<{ welcome?: string; passwordReset?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,8 +16,8 @@ export default async function Home({
     return <LandingPage />
   }
 
-  const { welcome } = await searchParams
-  const isWelcome = welcome === 'true'
+  const { welcome, passwordReset } = await searchParams
+  const bannerType = welcome === 'true' ? 'welcome' : passwordReset === 'true' ? 'passwordReset' : null
 
   const { data: { session } } = await supabase.auth.getSession()
   const token = session!.access_token
@@ -41,7 +41,7 @@ export default async function Home({
         token={token}
         userEmail={user.email!}
         displayName={displayName}
-        showWelcomeBanner={isWelcome}
+        bannerType={bannerType}
       />
     </>
   )
