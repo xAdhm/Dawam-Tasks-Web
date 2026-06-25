@@ -4,13 +4,20 @@ import Navbar from '@/components/Navbar'
 import TodayView from '@/components/TodayView'
 import LandingPage from '@/components/LandingPage'
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     return <LandingPage />
   }
+
+  const { welcome } = await searchParams
+  const isWelcome = welcome === 'true'
 
   const { data: { session } } = await supabase.auth.getSession()
   const token = session!.access_token
@@ -29,7 +36,13 @@ export default async function Home() {
   return (
     <>
       <Navbar userEmail={user.email!} displayName={displayName} />
-      <TodayView sectionsWithTasks={sectionsWithTasks} token={token} userEmail={user.email!} displayName={displayName} />
+      <TodayView
+        sectionsWithTasks={sectionsWithTasks}
+        token={token}
+        userEmail={user.email!}
+        displayName={displayName}
+        showWelcomeBanner={isWelcome}
+      />
     </>
   )
 }

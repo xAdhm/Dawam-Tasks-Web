@@ -3,31 +3,24 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function SignupPage() {
-  const [name, setName] = useState('')
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const supabase = createClient()
 
-  async function handleSignup() {
-    if (!name.trim() || !email.trim() || password.length < 6) {
-      setError('Name, email, and a password (6+ characters) are required')
+  async function handleSubmit() {
+    if (!email.trim()) {
+      setError('Enter your email')
       return
     }
 
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: name.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
-      },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     })
 
     if (error) {
@@ -45,8 +38,7 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-3 text-center">
           <h1 className="text-xl font-semibold">Check your email</h1>
           <p className="text-sm text-[var(--text-dim)]">
-            We sent a confirmation link to <span className="text-[var(--text)]">{email}</span>.
-            Click it and you'll be logged in automatically.
+            We sent a password reset link to <span className="text-[var(--text)]">{email}</span>.
           </p>
           <a href="/login" className="inline-block pt-2 text-sm text-[var(--violet)]">
             Back to login
@@ -59,15 +51,11 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] text-[var(--text)]">
       <div className="w-full max-w-sm space-y-4 p-6">
-        <h1 className="text-xl font-semibold">Create your account</h1>
+        <h1 className="text-xl font-semibold">Reset your password</h1>
+        <p className="text-sm text-[var(--text-dim)]">
+          Enter your email and we'll send you a link to reset your password.
+        </p>
 
-        <input
-          type="text"
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none"
-        />
         <input
           type="email"
           placeholder="Email"
@@ -75,29 +63,21 @@ export default function SignupPage() {
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none"
         />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none"
-        />
 
         {error && <p className="text-sm text-[var(--blue)]">{error}</p>}
 
         <button
           type="button"
-          onClick={handleSignup}
+          onClick={handleSubmit}
           disabled={loading}
           className="w-full rounded-lg bg-[var(--violet)] px-3 py-2 text-sm font-medium text-[var(--bg)]"
         >
-          {loading ? 'Creating account...' : 'Create account'}
+          {loading ? 'Sending...' : 'Send reset link'}
         </button>
 
-        <p className="text-center text-xs text-[var(--text-dim)]">
-          Already have an account?{' '}
-          <a href="/login" className="text-[var(--violet)]">Log in</a>
-        </p>
+        <a href="/login" className="block text-center text-xs text-[var(--violet)]">
+          Back to login
+        </a>
       </div>
     </div>
   )

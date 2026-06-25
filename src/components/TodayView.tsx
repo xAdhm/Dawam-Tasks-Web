@@ -33,6 +33,7 @@ interface Props {
   token: string
   userEmail: string
   displayName: string
+  showWelcomeBanner?: boolean
 }
 
 const urgencyClasses: Record<string, string> = {
@@ -73,7 +74,7 @@ function SortableSection({
   )
 }
 
-export default function TodayView({ sectionsWithTasks: initial, token, userEmail, displayName }: Props) {
+export default function TodayView({ sectionsWithTasks: initial, token, userEmail, displayName, showWelcomeBanner }: Props) {
   const [sectionsWithTasks, setSectionsWithTasks] = useState(initial)
   const [addingToSectionId, setAddingToSectionId] = useState<string | null>(null)
   const [editingTask, setEditingTask] = useState<{ sectionId: string; task: Task } | null>(null)
@@ -83,6 +84,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null)
   const [creatingSection, setCreatingSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
+  const [bannerDismissed, setBannerDismissed] = useState(false)
   const { theme, setTheme } = useTheme()
 
   const sensors = useSensors(
@@ -219,6 +221,19 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 md:max-w-4xl">
+        {showWelcomeBanner && !bannerDismissed && (
+          <div className="mb-5 flex items-center justify-between rounded-lg border border-[var(--violet)] bg-[var(--violet)]/10 px-4 py-2.5 text-sm">
+            <span>Your email is verified — welcome to Dawam!</span>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              aria-label="Dismiss"
+              className="text-[var(--text-dim)] opacity-70 hover:opacity-100"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <header className="mb-6 flex items-baseline justify-between sm:mb-8">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             Yallah, {displayName}
