@@ -16,6 +16,7 @@ import {
   arrayMove,
   useSortable,
   rectSortingStrategy,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api } from '@/lib/api/client'
@@ -68,13 +69,44 @@ function SortableSection({
       <button
         {...attributes}
         {...listeners}
-        aria-label="Drag to reorder"
+        aria-label="Drag to reorder section"
         suppressHydrationWarning
         className="absolute -left-1 top-0 hidden h-6 w-5 cursor-grab items-center justify-center text-[var(--text-dim)] sm:flex"
       >
         ⠿
       </button>
       {children}
+    </div>
+  )
+}
+
+function SortableTaskRow({
+  id,
+  children,
+}: {
+  id: string
+  children: React.ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center">
+      <button
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder task"
+        suppressHydrationWarning
+        className="flex w-5 min-w-5 cursor-grab items-center justify-center text-[var(--text-dim)] opacity-50 hover:opacity-100"
+      >
+        ⠿
+      </button>
+      <div className="flex-1">{children}</div>
     </div>
   )
 }
@@ -92,7 +124,12 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const { theme, setTheme } = useTheme()
 
-  const sensors = useSensors(
+  const sectionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  )
+
+  const taskSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   )
@@ -197,7 +234,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
     }
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
+  async function handleSectionDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
@@ -214,6 +251,32 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
     } catch (err) {
       setSectionsWithTasks(prevState)
       console.error('Reorder failed', err)
+    }
+  }
+
+  async function handleTaskDragEnd(sectionId: string, event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const sectionEntry = sectionsWithTasks.find((s) => s.section.id === sectionId)
+    if (!sectionEntry) return
+
+    const oldIndex = sectionEntry.tasks.findIndex((t) => t.id === active.id)
+    const newIndex = sectionEntry.tasks.findIndex((t) => t.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reorderedTasks = arrayMove(sectionEntry.tasks, oldIndex, newIndex)
+    const prevState = sectionsWithTasks
+
+    setSectionsWithTasks((prev) =>
+      prev.map((s) => (s.section.id !== sectionId ? s : { ...s, tasks: reorderedTasks }))
+    )
+
+    try {
+      await api.reorderTasks(sectionId, reorderedTasks.map((t) => t.id), token)
+    } catch (err) {
+      setSectionsWithTasks(prevState)
+      console.error('Task reorder failed', err)
     }
   }
 
@@ -256,7 +319,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
           </div>
         </header>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sectionSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
           <SortableContext
             items={sectionsWithTasks.map((s) => s.section.id)}
             strategy={rectSortingStrategy}
@@ -328,55 +391,66 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
                       {tasks.length === 0 && (
                         <p className="px-4 py-4 text-sm text-[var(--text-dim)]">No tasks yet</p>
                       )}
-                      {tasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className="group flex w-full items-center gap-3 border-b border-[var(--border)] px-4 py-3 last:border-b-0"
+
+                      <DndContext
+                        sensors={taskSensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(event) => handleTaskDragEnd(section.id, event)}
+                      >
+                        <SortableContext
+                          items={tasks.map((t) => t.id)}
+                          strategy={verticalListSortingStrategy}
                         >
-                          <button
-                            onClick={() => handleToggle(section.id, task.id)}
-                            className={`flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border ${
-                              task.doneToday ? 'bg-[var(--violet)] border-[var(--violet)]' : 'border-[var(--border)]'
-                            }`}
-                          >
-                            {task.doneToday && <span className="text-[10px] font-bold text-[var(--bg)]">✓</span>}
-                          </button>
+                          {tasks.map((task) => (
+                            <SortableTaskRow key={task.id} id={task.id}>
+                              <div className="flex w-full items-center gap-3 border-b border-[var(--border)] px-2 py-3 last:border-b-0">
+                                <button
+                                  onClick={() => handleToggle(section.id, task.id)}
+                                  className={`flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border ${
+                                    task.doneToday ? 'bg-[var(--violet)] border-[var(--violet)]' : 'border-[var(--border)]'
+                                  }`}
+                                >
+                                  {task.doneToday && <span className="text-[10px] font-bold text-[var(--bg)]">✓</span>}
+                                </button>
 
-                          <button
-                            onClick={() => handleToggle(section.id, task.id)}
-                            className={`flex-1 text-left text-sm ${task.doneToday ? 'text-[var(--text-dim)] line-through' : ''}`}
-                          >
-                            {task.title}
-                          </button>
+                                <button
+                                  onClick={() => handleToggle(section.id, task.id)}
+                                  className={`flex-1 text-left text-sm ${task.doneToday ? 'text-[var(--text-dim)] line-through' : ''}`}
+                                >
+                                  {task.title}
+                                </button>
 
-                          {task.dueDate && (
-                            <span
-                              className={`rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
-                                urgencyClasses[dueUrgency(task.dueDate)]
-                              }`}
-                            >
-                              {dueLabel(task.dueDate)}
-                            </span>
-                          )}
+                                {task.dueDate && (
+                                  <span
+                                    className={`rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
+                                      urgencyClasses[dueUrgency(task.dueDate)]
+                                    }`}
+                                  >
+                                    {dueLabel(task.dueDate)}
+                                  </span>
+                                )}
 
-                          <button
-                            onClick={() => setEditingTask({ sectionId: section.id, task })}
-                            aria-label="Edit task"
-                            className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
-                          >
-                            ✎
-                          </button>
+                                <button
+                                  onClick={() => setEditingTask({ sectionId: section.id, task })}
+                                  aria-label="Edit task"
+                                  className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
+                                >
+                                  ✎
+                                </button>
 
-                          <button
-                            onClick={() => handleDelete(section.id, task.id)}
-                            disabled={deletingTaskId === task.id}
-                            aria-label="Delete task"
-                            className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
+                                <button
+                                  onClick={() => handleDelete(section.id, task.id)}
+                                  disabled={deletingTaskId === task.id}
+                                  aria-label="Delete task"
+                                  className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </SortableTaskRow>
+                          ))}
+                        </SortableContext>
+                      </DndContext>
                     </div>
                   </section>
                 </SortableSection>

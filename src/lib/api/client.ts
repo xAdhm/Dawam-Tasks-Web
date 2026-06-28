@@ -90,4 +90,10 @@ export const api = {
     apiFetch<void>(`/sections/${sectionId}/tasks/${taskId}`, token, {
       method: 'DELETE',
     }),
+
+  reorderTasks: (sectionId: string, orderedIds: string[], token: string) =>
+    apiFetch<Task[]>(`/sections/${sectionId}/tasks/reorder`, token, {
+      method: 'PUT',
+      body: JSON.stringify(orderedIds),
+    }),
 }
