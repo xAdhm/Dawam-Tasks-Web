@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api/client'
-import Navbar from '@/components/Navbar'
 import TodayView from '@/components/TodayView'
 import LandingPage from '@/components/LandingPage'
 
@@ -34,15 +33,12 @@ export default async function Home({
   )
 
   return (
-    <>
-      <Navbar userEmail={user.email!} displayName={displayName} />
-      <TodayView
-        sectionsWithTasks={sectionsWithTasks}
-        token={token}
-        userEmail={user.email!}
-        displayName={displayName}
-        bannerType={bannerType}
-      />
-    </>
+    <TodayView
+      sectionsWithTasks={sectionsWithTasks}
+      token={token}
+      userEmail={user.email!}
+      displayName={displayName}
+      bannerType={bannerType}
+    />
   )
 }

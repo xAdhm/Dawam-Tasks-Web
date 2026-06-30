@@ -23,6 +23,8 @@ import { api } from '@/lib/api/client'
 import type { Section, Task } from '@/lib/api/types'
 import { dueLabel, dueUrgency } from '@/lib/dueDate'
 import AddTaskForm from './AddTaskForm'
+import TopBar from './TopBar'
+import Sidebar from './Sidebar'
 
 interface SectionWithTasks {
   section: Section
@@ -71,7 +73,7 @@ function SortableSection({
         {...listeners}
         aria-label="Drag to reorder section"
         suppressHydrationWarning
-        className="absolute -left-1 top-0 hidden h-6 w-5 cursor-grab items-center justify-center text-[var(--text-dim)] sm:flex"
+        className="absolute -left-4 top-1.5 hidden h-6 w-5 cursor-grab items-center justify-center text-[var(--text-dim)] sm:flex"
       >
         ⠿
       </button>
@@ -122,6 +124,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   const [creatingSection, setCreatingSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
   const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
   const sectionSensors = useSensors(
@@ -288,6 +291,9 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <TopBar onMenuClick={() => setSidebarOpen(true)} hidden={sidebarOpen} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} displayName={displayName} />
+
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 md:max-w-4xl">
         {bannerType && !bannerDismissed && (
           <div className="mb-5 flex items-center justify-between rounded-lg border border-[var(--violet)] bg-[var(--violet)]/10 px-4 py-2.5 text-sm">
@@ -327,7 +333,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
             <div className="space-y-6 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0">
               {sectionsWithTasks.map(({ section, tasks }) => (
                 <SortableSection key={section.id} id={section.id}>
-                  <section className="pl-5 sm:pl-5">
+                  <section className="pl-2 sm:pl-2">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       {renamingSectionId === section.id ? (
                         <input
