@@ -1,5 +1,5 @@
 # ✅ Dawam Tasks Web
-The Next.js frontend for Dawam — a daily task/habit tracker with sections, drag-to-reorder tasks, and recurring-task tracking. Authenticates via Supabase and talks to the [`dawam`](../dawam) Spring Boot API for all task data.
+The Next.js frontend for Dawam — a daily task/habit tracker with sections, drag-to-reorder tasks, and recurring-task tracking. Authenticates via Supabase and talks to the [Dawam-Tasks-Backend](https://github.com/xAdhm/Dawam-Tasks-Backend) Spring Boot API for all task data.
 ---
 ## 🛠️ Tech Stack
 - Next.js 16 (App Router) + React 19 + TypeScript
@@ -11,12 +11,12 @@ The Next.js frontend for Dawam — a daily task/habit tracker with sections, dra
 ## ✅ Prerequisites
 - Node.js 18+
 - A Supabase project with email/password auth enabled (the same project used by the `dawam` backend, since both share the JWT/session)
-- The [`dawam`](../dawam) Spring Boot API running and reachable (locally on `:8080` by default)
+- The [Dawam-Tasks-Backend](https://github.com/xAdhm/Dawam-Tasks-Backend) Spring Boot API running and reachable (locally on `:8080` by default)
 ---
 ## 🚀 Setup
 ### 1. Clone the repo
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/xAdhm/dawam-web.git
 cd dawam-web
 ```
 ### 2. Install dependencies
@@ -32,7 +32,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 All three are `NEXT_PUBLIC_*`, so they're bundled into client-side JS — none of them are secret (the anon key is meant to be public; real authorization happens via the user's JWT plus Supabase Row Level Security / the backend's own auth checks). `.env*` is already in `.gitignore`. If `NEXT_PUBLIC_API_BASE_URL` is omitted, the API client falls back to `http://localhost:8080`.
 ### 4. Start the backend
-This app has no API routes of its own for task data — it's a thin client. Start the [`dawam`](../dawam) Spring Boot API first (`./mvnw spring-boot:run`, defaults to port 8080) so the frontend has something to call.
+This app has no API routes of its own for task data — it's a thin client. Start [Dawam-Tasks-Backend](https://github.com/xAdhm/Dawam-Tasks-Backend) first (`./mvnw spring-boot:run`, defaults to port 8080) so the frontend has something to call.
 ### 5. Run the dev server
 ```bash
 npm run dev
