@@ -36,7 +36,7 @@ export default function TopBar({ onMenuClick, hidden }: Props) {
             />
             <circle cx="62" cy="145" r="10" fill="#8FC1F0" />
           </svg>
-          <span className="text-lg font-semibold">Dawam</span>
+          <span className="text-lg font-semibold" style={{ fontFamily: 'var(--font-nunito)' }}>Dawam</span>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-# ✅ Dawam Tasks Web
+# ✅ Dawam Web
 The Next.js frontend for Dawam — a daily task/habit tracker with sections, drag-to-reorder tasks, and recurring-task tracking. Authenticates via Supabase and talks to the [Dawam-Tasks-Backend](https://github.com/xAdhm/Dawam-Tasks-Backend) Spring Boot API for all task data.
 ---
 ## 🛠️ Tech Stack
