@@ -19,11 +19,15 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
     router.refresh()
   }
 
+  function navigate(path: string) {
+    onClose()
+    router.push(path)
+  }
+
   if (!open) return null
 
   return (
     <>
-      {/* Backdrop, only really matters on desktop where the panel doesn't fill the screen */}
       <div
         className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent"
         onClick={onClose}
@@ -48,7 +52,7 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
               />
               <circle cx="62" cy="145" r="10" fill="#8FC1F0" />
             </svg>
-            <span className="text-lg font-semibold">Dawam</span>
+            <span className="text-lg font-semibold" style={{ fontFamily: 'var(--font-nunito)' }}>Dawam</span>
           </div>
 
           <button
@@ -62,15 +66,21 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
 
         <nav className="mt-6 flex-1 px-3">
           <button
-            onClick={onClose}
+            onClick={() => navigate('/')}
             className="flex w-full items-center gap-2.5 rounded-lg bg-[var(--surface)] px-3 py-2.5 text-left text-sm font-medium"
           >
             Tasks
           </button>
         </nav>
 
-        <div className="border-t border-[var(--border)] px-3 py-4">
-          <div className="mb-2 px-3 text-xs text-[var(--text-dim)] sm:hidden">{displayName}</div>
+        <div className="border-t border-[var(--border)] px-3 py-4 space-y-1">
+          <div className="px-3 pb-1 text-xs text-[var(--text-dim)]">{displayName}</div>
+          <button
+            onClick={() => navigate('/settings')}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
+          >
+            Account settings
+          </button>
           <button
             onClick={handleLogout}
             className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)]"
