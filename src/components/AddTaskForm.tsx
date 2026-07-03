@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { api } from '@/lib/api/client'
 import type { Task, Frequency, DayOfWeek } from '@/lib/api/types'
+import DateTimePicker from './DateTimePicker'
 
 const DAYS: DayOfWeek[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -20,7 +21,9 @@ export default function AddTaskForm({ sectionId, token, task, onCreated, onUpdat
 
   const [title, setTitle] = useState(task?.title ?? '')
   const [type, setType] = useState<'ONE_TIME' | 'RECURRING'>(task?.type ?? 'ONE_TIME')
-  const [dueDate, setDueDate] = useState(task?.dueDate ?? '')
+  const [dueDateTime, setDueDateTime] = useState(
+    task?.dueDate ? task.dueDate.slice(0, 16) : ''
+  )
   const [frequency, setFrequency] = useState<Frequency>(task?.frequency ?? 'DAILY')
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(task?.daysOfWeek ?? [])
   const [saving, setSaving] = useState(false)
@@ -48,7 +51,7 @@ export default function AddTaskForm({ sectionId, token, task, onCreated, onUpdat
     const payload = {
       title: title.trim(),
       type,
-      dueDate: type === 'ONE_TIME' ? dueDate || null : null,
+      dueDate: type === 'ONE_TIME' ? (dueDateTime ? `${dueDateTime}:00` : null) : null,
       frequency: type === 'RECURRING' ? frequency : null,
       daysOfWeek: type === 'RECURRING' && frequency === 'SPECIFIC_DAYS' ? selectedDays : null,
     }
@@ -105,12 +108,7 @@ export default function AddTaskForm({ sectionId, token, task, onCreated, onUpdat
         </div>
 
         {type === 'ONE_TIME' && (
-          <input
-            type="date"
-            value={dueDate ?? ''}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="mb-3 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none"
-          />
+          <DateTimePicker value={dueDateTime} onChange={setDueDateTime} />
         )}
 
         {type === 'RECURRING' && (
