@@ -399,7 +399,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
               onDragEnd={handleTaskDragEnd}
               onDragCancel={() => { setActiveTaskId(null); setDragOverSectionId(null) }}
             >
-              <div className="space-y-6 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0">
+              <div className="space-y-10 sm:grid sm:grid-cols-2 sm:gap-10 sm:space-y-0">
                 {sectionsWithTasks.map(({ section, tasks }) => {
                   const isOver = dragOverSectionId === section.id
                   const sourceSectionId = activeTaskId ? findSectionByTaskId(activeTaskId)?.section.id : null
