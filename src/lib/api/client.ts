@@ -96,4 +96,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(orderedIds),
     }),
+
+  moveTask: (sectionId: string, taskId: string, targetSectionId: string, token: string) =>
+    apiFetch<Task>(`/sections/${sectionId}/tasks/${taskId}/move`, token, {
+      method: 'PUT',
+      body: JSON.stringify({ targetSectionId }),
+    }),
 }

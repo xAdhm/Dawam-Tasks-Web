@@ -10,6 +10,9 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
+  DragOverlay,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -51,21 +54,9 @@ const bannerMessages: Record<string, string> = {
   passwordReset: 'Your password has been reset successfully.',
 }
 
-function SortableSection({
-  id,
-  children,
-}: {
-  id: string
-  children: React.ReactNode
-}) {
+function SortableSection({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
-
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <button
@@ -82,21 +73,9 @@ function SortableSection({
   )
 }
 
-function SortableTaskRow({
-  id,
-  children,
-}: {
-  id: string
-  children: React.ReactNode
-}) {
+function SortableTaskRow({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
-
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }
   return (
     <div ref={setNodeRef} style={style} className="flex items-center">
       <button
@@ -113,6 +92,36 @@ function SortableTaskRow({
   )
 }
 
+function DroppableSection({
+  id,
+  isOver,
+  showPlaceholder,
+  children,
+}: {
+  id: string
+  isOver: boolean
+  showPlaceholder: boolean
+  children: React.ReactNode
+}) {
+  const { setNodeRef } = useDroppable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-xl border bg-[var(--surface)] overflow-hidden transition-colors ${
+        isOver ? 'border-[var(--violet)]' : 'border-[var(--border)]'
+      }`}
+    >
+      {children}
+      {showPlaceholder && (
+        <div className="flex items-center gap-3 border-t border-dashed border-[var(--border)] px-4 py-3 opacity-40">
+          <span className="flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border border-[var(--border)]" />
+          <span className="flex-1 text-sm text-[var(--text-dim)]">Drop here</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TodayView({ sectionsWithTasks: initial, token, userEmail, displayName, bannerType }: Props) {
   const [sectionsWithTasks, setSectionsWithTasks] = useState(initial)
   const [addingToSectionId, setAddingToSectionId] = useState<string | null>(null)
@@ -125,6 +134,8 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   const [newSectionName, setNewSectionName] = useState('')
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
+  const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
   const { theme, setTheme } = useTheme()
 
   const sectionSensors = useSensors(
@@ -136,6 +147,17 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   )
+
+  function findSectionByTaskId(taskId: string) {
+    return sectionsWithTasks.find((s) => s.tasks.some((t) => t.id === taskId))
+  }
+
+  function findSectionByIdOrTaskId(id: string) {
+    return (
+      sectionsWithTasks.find((s) => s.section.id === id) ||
+      sectionsWithTasks.find((s) => s.tasks.some((t) => t.id === id))
+    )
+  }
 
   async function handleToggle(sectionId: string, taskId: string) {
     setSectionsWithTasks((prev) =>
@@ -240,15 +262,12 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
   async function handleSectionDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
-
     const oldIndex = sectionsWithTasks.findIndex((s) => s.section.id === active.id)
     const newIndex = sectionsWithTasks.findIndex((s) => s.section.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
-
     const reordered = arrayMove(sectionsWithTasks, oldIndex, newIndex)
     const prevState = sectionsWithTasks
     setSectionsWithTasks(reordered)
-
     try {
       await api.reorderSections(reordered.map((s) => s.section.id), token)
     } catch (err) {
@@ -257,29 +276,78 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
     }
   }
 
-  async function handleTaskDragEnd(sectionId: string, event: DragEndEvent) {
+  function handleTaskDragOver(event: DragOverEvent) {
+    const { over } = event
+    if (!over) {
+      setDragOverSectionId(null)
+      return
+    }
+    const overId = over.id as string
+    const overSection = findSectionByIdOrTaskId(overId)
+    if (overSection) {
+      setDragOverSectionId(overSection.section.id)
+    }
+  }
+
+  async function handleTaskDragEnd(event: DragEndEvent) {
     const { active, over } = event
+    setActiveTaskId(null)
+    setDragOverSectionId(null)
     if (!over || active.id === over.id) return
 
-    const sectionEntry = sectionsWithTasks.find((s) => s.section.id === sectionId)
-    if (!sectionEntry) return
+    const taskId = active.id as string
+    const overId = over.id as string
 
-    const oldIndex = sectionEntry.tasks.findIndex((t) => t.id === active.id)
-    const newIndex = sectionEntry.tasks.findIndex((t) => t.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
+    const sourceSection = findSectionByTaskId(taskId)
+    if (!sourceSection) return
 
-    const reorderedTasks = arrayMove(sectionEntry.tasks, oldIndex, newIndex)
-    const prevState = sectionsWithTasks
+    const targetSection = findSectionByIdOrTaskId(overId)
+    if (!targetSection) return
 
-    setSectionsWithTasks((prev) =>
-      prev.map((s) => (s.section.id !== sectionId ? s : { ...s, tasks: reorderedTasks }))
-    )
+    const isCrossSection = sourceSection.section.id !== targetSection.section.id
 
-    try {
-      await api.reorderTasks(sectionId, reorderedTasks.map((t) => t.id), token)
-    } catch (err) {
-      setSectionsWithTasks(prevState)
-      console.error('Task reorder failed', err)
+    if (isCrossSection) {
+      const task = sourceSection.tasks.find((t) => t.id === taskId)!
+      const prevState = sectionsWithTasks
+
+      setSectionsWithTasks((prev) =>
+        prev.map((s) => {
+          if (s.section.id === sourceSection.section.id) {
+            return { ...s, tasks: s.tasks.filter((t) => t.id !== taskId) }
+          }
+          if (s.section.id === targetSection.section.id) {
+            return { ...s, tasks: [...s.tasks, { ...task, sectionId: targetSection.section.id }] }
+          }
+          return s
+        })
+      )
+
+      try {
+        await api.moveTask(sourceSection.section.id, taskId, targetSection.section.id, token)
+      } catch (err) {
+        setSectionsWithTasks(prevState)
+        console.error('Move task failed', err)
+      }
+    } else {
+      const oldIndex = sourceSection.tasks.findIndex((t) => t.id === taskId)
+      const newIndex = sourceSection.tasks.findIndex((t) => t.id === overId)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      const reorderedTasks = arrayMove(sourceSection.tasks, oldIndex, newIndex)
+      const prevState = sectionsWithTasks
+
+      setSectionsWithTasks((prev) =>
+        prev.map((s) =>
+          s.section.id !== sourceSection.section.id ? s : { ...s, tasks: reorderedTasks }
+        )
+      )
+
+      try {
+        await api.reorderTasks(sourceSection.section.id, reorderedTasks.map((t) => t.id), token)
+      } catch (err) {
+        setSectionsWithTasks(prevState)
+        console.error('Task reorder failed', err)
+      }
     }
   }
 
@@ -288,6 +356,10 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
     month: 'short',
     day: 'numeric',
   })
+
+  const activeTask = activeTaskId
+    ? sectionsWithTasks.flatMap((s) => s.tasks).find((t) => t.id === activeTaskId)
+    : null
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
@@ -298,20 +370,12 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
         {bannerType && !bannerDismissed && (
           <div className="mb-5 flex items-center justify-between rounded-lg border border-[var(--violet)] bg-[var(--violet)]/10 px-4 py-2.5 text-sm">
             <span>{bannerMessages[bannerType]}</span>
-            <button
-              onClick={() => setBannerDismissed(true)}
-              aria-label="Dismiss"
-              className="text-[var(--text-dim)] opacity-70 hover:opacity-100"
-            >
-              ✕
-            </button>
+            <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss" className="text-[var(--text-dim)] opacity-70 hover:opacity-100">✕</button>
           </div>
         )}
 
         <header className="mb-6 flex items-baseline justify-between sm:mb-8">
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Yallah, {displayName}
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Yallah, {displayName}</h1>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[var(--text-dim)] sm:text-sm">{todayName}</span>
             <button
@@ -326,142 +390,121 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
         </header>
 
         <DndContext sensors={sectionSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-          <SortableContext
-            items={sectionsWithTasks.map((s) => s.section.id)}
-            strategy={rectSortingStrategy}
-          >
-            <div className="space-y-6 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0">
-              {sectionsWithTasks.map(({ section, tasks }) => (
-                <SortableSection key={section.id} id={section.id}>
-                  <section className="pl-2 sm:pl-2">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      {renamingSectionId === section.id ? (
-                        <input
-                          autoFocus
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onBlur={() => handleRenameSection(section.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRenameSection(section.id)
-                            if (e.key === 'Escape') setRenamingSectionId(null)
-                          }}
-                          className="flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide outline-none"
-                        />
-                      ) : (
-                        <button
-                          onClick={() => startRename(section.id, section.name)}
-                          className="text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-dim)]"
-                        >
-                          {section.name}
-                        </button>
-                      )}
+          <SortableContext items={sectionsWithTasks.map((s) => s.section.id)} strategy={rectSortingStrategy}>
+            <DndContext
+              sensors={taskSensors}
+              collisionDetection={closestCenter}
+              onDragStart={(event) => setActiveTaskId(event.active.id as string)}
+              onDragOver={handleTaskDragOver}
+              onDragEnd={handleTaskDragEnd}
+              onDragCancel={() => { setActiveTaskId(null); setDragOverSectionId(null) }}
+            >
+              <div className="space-y-6 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0">
+                {sectionsWithTasks.map(({ section, tasks }) => {
+                  const isOver = dragOverSectionId === section.id
+                  const sourceSectionId = activeTaskId ? findSectionByTaskId(activeTaskId)?.section.id : null
+                  const showPlaceholder = isOver && sourceSectionId !== section.id
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setAddingToSectionId(section.id)}
-                          className="rounded-md bg-[var(--violet)]/10 px-2 py-1 text-xs font-semibold text-[var(--violet)]"
-                        >
-                          + Add
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteSectionId(section.id)}
-                          aria-label="Delete section"
-                          className="text-xs text-[var(--text-dim)] opacity-60 hover:opacity-100"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-
-                    {confirmDeleteSectionId === section.id && (
-                      <div className="mb-2 rounded-lg border border-[var(--blue)] bg-[var(--blue-soft)] p-2.5 text-xs">
-                        <p className="mb-2 text-[var(--text)]">Delete "{section.name}" and all its tasks?</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleDeleteSection(section.id)}
-                            className="rounded-md bg-[var(--blue)] px-2.5 py-1 font-semibold text-[var(--bg)]"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={() => setConfirmDeleteSectionId(null)}
-                            className="rounded-md border border-[var(--border)] px-2.5 py-1 text-[var(--text-dim)]"
-                          >
-                            Cancel
-                          </button>
+                  return (
+                    <SortableSection key={section.id} id={section.id}>
+                      <section className="pl-2 sm:pl-2">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          {renamingSectionId === section.id ? (
+                            <input
+                              autoFocus
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onBlur={() => handleRenameSection(section.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameSection(section.id)
+                                if (e.key === 'Escape') setRenamingSectionId(null)
+                              }}
+                              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide outline-none"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => startRename(section.id, section.name)}
+                              className="text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-dim)]"
+                            >
+                              {section.name}
+                            </button>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setAddingToSectionId(section.id)}
+                              className="rounded-md bg-[var(--violet)]/10 px-2 py-1 text-xs font-semibold text-[var(--violet)]"
+                            >
+                              + Add
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteSectionId(section.id)}
+                              aria-label="Delete section"
+                              className="text-xs text-[var(--text-dim)] opacity-60 hover:opacity-100"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
 
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-                      {tasks.length === 0 && (
-                        <p className="px-4 py-4 text-sm text-[var(--text-dim)]">No tasks yet</p>
-                      )}
+                        {confirmDeleteSectionId === section.id && (
+                          <div className="mb-2 rounded-lg border border-[var(--blue)] bg-[var(--blue-soft)] p-2.5 text-xs">
+                            <p className="mb-2 text-[var(--text)]">Delete "{section.name}" and all its tasks?</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleDeleteSection(section.id)} className="rounded-md bg-[var(--blue)] px-2.5 py-1 font-semibold text-[var(--bg)]">Delete</button>
+                              <button onClick={() => setConfirmDeleteSectionId(null)} className="rounded-md border border-[var(--border)] px-2.5 py-1 text-[var(--text-dim)]">Cancel</button>
+                            </div>
+                          </div>
+                        )}
 
-                      <DndContext
-                        sensors={taskSensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(event) => handleTaskDragEnd(section.id, event)}
-                      >
-                        <SortableContext
-                          items={tasks.map((t) => t.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          {tasks.map((task) => (
-                            <SortableTaskRow key={task.id} id={task.id}>
-                              <div className="flex w-full items-center gap-3 border-b border-[var(--border)] px-2 py-3 last:border-b-0">
-                                <button
-                                  onClick={() => handleToggle(section.id, task.id)}
-                                  className={`flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border ${
-                                    task.doneToday ? 'bg-[var(--violet)] border-[var(--violet)]' : 'border-[var(--border)]'
-                                  }`}
-                                >
-                                  {task.doneToday && <span className="text-[10px] font-bold text-[var(--bg)]">✓</span>}
-                                </button>
-
-                                <button
-                                  onClick={() => handleToggle(section.id, task.id)}
-                                  className={`flex-1 text-left text-sm ${task.doneToday ? 'text-[var(--text-dim)] line-through' : ''}`}
-                                >
-                                  {task.title}
-                                </button>
-
-                                {task.dueDate && (
-                                  <span
-                                    className={`rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
-                                      urgencyClasses[dueUrgency(task.dueDate)]
+                        <DroppableSection id={section.id} isOver={isOver} showPlaceholder={showPlaceholder}>
+                          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                            {tasks.length === 0 && !showPlaceholder && (
+                              <p className="px-4 py-4 text-sm text-[var(--text-dim)]">No tasks yet</p>
+                            )}
+                            {tasks.map((task) => (
+                              <SortableTaskRow key={task.id} id={task.id}>
+                                <div className="flex w-full items-center gap-3 border-b border-[var(--border)] px-2 py-3 last:border-b-0">
+                                  <button
+                                    onClick={() => handleToggle(section.id, task.id)}
+                                    className={`flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border ${
+                                      task.doneToday ? 'bg-[var(--violet)] border-[var(--violet)]' : 'border-[var(--border)]'
                                     }`}
                                   >
-                                    {dueLabel(task.dueDate)}
-                                  </span>
-                                )}
+                                    {task.doneToday && <span className="text-[10px] font-bold text-[var(--bg)]">✓</span>}
+                                  </button>
+                                  <button
+                                    onClick={() => handleToggle(section.id, task.id)}
+                                    className={`flex-1 text-left text-sm ${task.doneToday ? 'text-[var(--text-dim)] line-through' : ''}`}
+                                  >
+                                    {task.title}
+                                  </button>
+                                  {task.dueDate && (
+                                    <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${urgencyClasses[dueUrgency(task.dueDate)]}`}>
+                                      {dueLabel(task.dueDate)}
+                                    </span>
+                                  )}
+                                  <button onClick={() => setEditingTask({ sectionId: section.id, task })} aria-label="Edit task" className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100">✎</button>
+                                  <button onClick={() => handleDelete(section.id, task.id)} disabled={deletingTaskId === task.id} aria-label="Delete task" className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100">✕</button>
+                                </div>
+                              </SortableTaskRow>
+                            ))}
+                          </SortableContext>
+                        </DroppableSection>
+                      </section>
+                    </SortableSection>
+                  )
+                })}
+              </div>
 
-                                <button
-                                  onClick={() => setEditingTask({ sectionId: section.id, task })}
-                                  aria-label="Edit task"
-                                  className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
-                                >
-                                  ✎
-                                </button>
-
-                                <button
-                                  onClick={() => handleDelete(section.id, task.id)}
-                                  disabled={deletingTaskId === task.id}
-                                  aria-label="Delete task"
-                                  className="text-[var(--text-dim)] opacity-60 transition-opacity hover:opacity-100"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </SortableTaskRow>
-                          ))}
-                        </SortableContext>
-                      </DndContext>
-                    </div>
-                  </section>
-                </SortableSection>
-              ))}
-            </div>
+              <DragOverlay>
+                {activeTask && (
+                  <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-lg text-sm opacity-90">
+                    <span className="flex h-[18px] w-[18px] min-w-[18px] items-center justify-center rounded-full border border-[var(--border)]" />
+                    <span className="flex-1">{activeTask.title}</span>
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
           </SortableContext>
         </DndContext>
 
@@ -479,18 +522,10 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
                 placeholder="Section name"
                 className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none"
               />
-              <button
-                onClick={handleCreateSection}
-                className="rounded-lg bg-[var(--violet)] px-3 py-2 text-sm font-medium text-[var(--bg)]"
-              >
-                Add
-              </button>
+              <button onClick={handleCreateSection} className="rounded-lg bg-[var(--violet)] px-3 py-2 text-sm font-medium text-[var(--bg)]">Add</button>
             </div>
           ) : (
-            <button
-              onClick={() => setCreatingSection(true)}
-              className="flex h-full min-h-[52px] w-full items-center justify-center rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--text-dim)]"
-            >
+            <button onClick={() => setCreatingSection(true)} className="flex h-full min-h-[52px] w-full items-center justify-center rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--text-dim)]">
               + New section
             </button>
           )}
@@ -498,22 +533,10 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
       </div>
 
       {addingToSectionId && (
-        <AddTaskForm
-          sectionId={addingToSectionId}
-          token={token}
-          onCreated={(task) => handleTaskCreated(addingToSectionId, task)}
-          onClose={() => setAddingToSectionId(null)}
-        />
+        <AddTaskForm sectionId={addingToSectionId} token={token} onCreated={(task) => handleTaskCreated(addingToSectionId, task)} onClose={() => setAddingToSectionId(null)} />
       )}
-
       {editingTask && (
-        <AddTaskForm
-          sectionId={editingTask.sectionId}
-          token={token}
-          task={editingTask.task}
-          onUpdated={(task) => handleTaskUpdated(editingTask.sectionId, task)}
-          onClose={() => setEditingTask(null)}
-        />
+        <AddTaskForm sectionId={editingTask.sectionId} token={token} task={editingTask.task} onUpdated={(task) => handleTaskUpdated(editingTask.sectionId, task)} onClose={() => setEditingTask(null)} />
       )}
     </div>
   )
