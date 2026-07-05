@@ -64,12 +64,18 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
           </button>
         </div>
 
-        <nav className="mt-6 flex-1 px-3">
+        <nav className="mt-6 flex-1 px-3 space-y-1">
           <button
             onClick={() => navigate('/')}
             className="flex w-full items-center gap-2.5 rounded-lg bg-[var(--surface)] px-3 py-2.5 text-left text-sm font-medium"
           >
             Tasks
+          </button>
+          <button
+            onClick={() => navigate('/calendar')}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
+          >
+            Calendar
           </button>
         </nav>
 

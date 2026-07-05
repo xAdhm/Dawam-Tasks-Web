@@ -102,4 +102,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ targetSectionId }),
     }),
+
+  getCalendar: (start: string, end: string, token: string) =>
+    apiFetch<Record<string, Task[]>>(`/calendar?start=${start}&end=${end}`, token),
 }
