@@ -91,6 +91,16 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
         <div className="border-t border-[var(--border)] px-3 py-4 space-y-1">
           <div className="px-3 pb-1 text-xs text-[var(--text-dim)]">{displayName}</div>
           <button
+            onClick={() => navigate('/feedback')}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
+              pathname === '/feedback'
+                ? 'bg-[var(--surface)] text-[var(--text)]'
+                : 'text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+            }`}
+          >
+            Feedback
+          </button>
+          <button
             onClick={() => navigate('/settings')}
             className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
               pathname === '/settings'
