@@ -83,8 +83,18 @@ function LoginForm() {
   const supabase = createClient()
 
   useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://dawam-api.onrender.com'}/sections`)
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     const prefill = searchParams.get('email')
     if (prefill) setEmail(prefill)
+
+    const error = searchParams.get('error')
+    if (error === 'confirmation_failed') {
+      setError('Email confirmation failed. Please try signing up again.')
+    }
   }, [searchParams])
 
   async function handleLogin() {
