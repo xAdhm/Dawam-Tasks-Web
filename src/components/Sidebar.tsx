@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
 
 export default function Sidebar({ open, onClose, displayName }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   async function handleLogout() {
@@ -67,13 +68,21 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
         <nav className="mt-6 flex-1 px-3 space-y-1">
           <button
             onClick={() => navigate('/')}
-            className="flex w-full items-center gap-2.5 rounded-lg bg-[var(--surface)] px-3 py-2.5 text-left text-sm font-medium"
+            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
+              pathname === '/'
+                ? 'bg-[var(--surface)] text-[var(--text)]'
+                : 'text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+            }`}
           >
             Tasks
           </button>
           <button
             onClick={() => navigate('/calendar')}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
+            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
+              pathname === '/calendar'
+                ? 'bg-[var(--surface)] text-[var(--text)]'
+                : 'text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+            }`}
           >
             Calendar
           </button>
@@ -83,7 +92,11 @@ export default function Sidebar({ open, onClose, displayName }: Props) {
           <div className="px-3 pb-1 text-xs text-[var(--text-dim)]">{displayName}</div>
           <button
             onClick={() => navigate('/settings')}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
+            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
+              pathname === '/settings'
+                ? 'bg-[var(--surface)] text-[var(--text)]'
+                : 'text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+            }`}
           >
             Account settings
           </button>

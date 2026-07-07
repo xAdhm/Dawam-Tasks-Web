@@ -51,6 +51,7 @@ export default function CalendarView({ calendarData: initial, token, displayName
   const { theme, setTheme } = useTheme()
 
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate())
 
   async function fetchMonth(y: number, m: number) {
@@ -87,7 +88,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
     const sectionId = task.sectionId
     const taskId = task.id
 
-    // Optimistic update
     setCalendarData((prev) => {
       const next = { ...prev }
       for (const key in next) {
@@ -101,7 +101,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
     try {
       await api.toggleTask(sectionId, taskId, token)
     } catch (err) {
-      // Revert
       setCalendarData((prev) => {
         const next = { ...prev }
         for (const key in next) {
@@ -119,7 +118,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
   const firstDay = getFirstDayOfMonth(year, month)
   const selectedTasks = selectedDate ? (calendarData[selectedDate] || []) : []
 
-  // Week view: get current week days
   const todayDate = new Date()
   const startOfWeek = new Date(todayDate)
   startOfWeek.setDate(todayDate.getDate() - todayDate.getDay())
@@ -128,6 +126,15 @@ export default function CalendarView({ calendarData: initial, token, displayName
     d.setDate(startOfWeek.getDate() + i)
     return d
   })
+
+  function getDayStatus(dateKey: string, tasks: Task[]) {
+    const dayDate = new Date(dateKey + 'T00:00:00')
+    const isPast = dayDate < today
+    const isToday = dateKey === todayKey
+    const hasIncomplete = tasks.some((t) => !t.doneToday)
+    const hasOverdue = isPast && !isToday && hasIncomplete && tasks.length > 0
+    return { isPast, isToday, hasIncomplete, hasOverdue }
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
@@ -144,7 +151,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
           </div>
 
           <div className="flex items-center gap-2">
-            {/* View toggle */}
             <div className="flex rounded-lg border border-[var(--border)] overflow-hidden text-xs font-semibold">
               <button
                 onClick={() => setView('month')}
@@ -160,7 +166,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
               </button>
             </div>
 
-            {/* Theme toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
@@ -178,7 +183,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
         {/* Month view */}
         {view === 'month' && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-            {/* Day headers */}
             <div className="grid grid-cols-7 border-b border-[var(--border)]">
               {DAYS_OF_WEEK_SHORT.map((d) => (
                 <div key={d} className="hidden py-2 text-center text-xs font-semibold text-[var(--text-dim)] sm:block">{d}</div>
@@ -188,7 +192,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7">
               {Array.from({ length: firstDay }).map((_, i) => (
                 <div key={`empty-${i}`} className="border-b border-r border-[var(--border)] p-1 sm:p-2 min-h-[60px] sm:min-h-[80px]" />
@@ -197,27 +200,30 @@ export default function CalendarView({ calendarData: initial, token, displayName
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                 const dateKey = formatDateKey(year, month, day)
                 const tasks = calendarData[dateKey] || []
-                const isToday = dateKey === todayKey
                 const isSelected = dateKey === selectedDate
-                const hasOverdue = tasks.some((t) => !t.doneToday && t.dueDate && new Date(t.dueDate) < today)
-                const hasTasks = tasks.length > 0
+                const { isToday, hasOverdue, isPast } = getDayStatus(dateKey, tasks)
+                const isCurrentMonth = true
+                const dimmed = isPast && !isToday
 
                 return (
                   <div
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : dateKey)}
                     className={`cursor-pointer border-b border-r border-[var(--border)] p-1 sm:p-2 min-h-[60px] sm:min-h-[80px] transition-colors ${
-                      isSelected ? 'bg-[var(--violet)]/10' : 'hover:bg-[var(--border)]/30'
-                    }`}
+                      isSelected ? 'bg-[var(--violet)]/10' :
+                      hasOverdue ? 'bg-[var(--blue-soft)]' :
+                      'hover:bg-[var(--border)]/30'
+                    } ${dimmed ? 'opacity-60' : ''}`}
                   >
                     <div className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                      isToday ? 'bg-[var(--violet)] text-[var(--bg)]' : 'text-[var(--text)]'
+                      isToday ? 'bg-[var(--violet)] text-[var(--bg)]' :
+                      hasOverdue ? 'text-[var(--blue)]' :
+                      'text-[var(--text)]'
                     }`}>
                       {day}
                     </div>
 
-                    {/* Task dots */}
-                    {hasTasks && (
+                    {tasks.length > 0 && (
                       <div className="flex flex-wrap gap-0.5">
                         {tasks.slice(0, 3).map((task) => (
                           <div
@@ -250,27 +256,36 @@ export default function CalendarView({ calendarData: initial, token, displayName
                 const isToday = dateKey === todayKey
                 const isSelected = dateKey === selectedDate
                 const tasks = calendarData[dateKey] || []
+                const { hasOverdue } = getDayStatus(dateKey, tasks)
 
                 return (
                   <div
                     key={i}
                     onClick={() => setSelectedDate(isSelected ? null : dateKey)}
                     className={`cursor-pointer p-2 sm:p-3 text-center transition-colors ${
-                      isSelected ? 'bg-[var(--violet)]/10' : 'hover:bg-[var(--border)]/30'
+                      isSelected ? 'bg-[var(--violet)]/10' :
+                      hasOverdue ? 'bg-[var(--blue-soft)]' :
+                      'hover:bg-[var(--border)]/30'
                     }`}
                   >
                     <div className="text-[10px] font-semibold text-[var(--text-dim)] mb-1">
                       {DAYS_OF_WEEK_SHORT[i]}
                     </div>
                     <div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${
-                      isToday ? 'bg-[var(--violet)] text-[var(--bg)]' : 'text-[var(--text)]'
+                      isToday ? 'bg-[var(--violet)] text-[var(--bg)]' :
+                      hasOverdue ? 'text-[var(--blue)]' :
+                      'text-[var(--text)]'
                     }`}>
                       {d.getDate()}
                     </div>
                     {tasks.length > 0 && (
                       <div className="mt-1 flex justify-center gap-0.5">
                         {tasks.slice(0, 3).map((t) => (
-                          <div key={t.id} className={`h-1.5 w-1.5 rounded-full ${t.doneToday ? 'bg-[var(--text-dim)]' : 'bg-[var(--violet)]'}`} />
+                          <div key={t.id} className={`h-1.5 w-1.5 rounded-full ${
+                            t.doneToday ? 'bg-[var(--text-dim)]' :
+                            hasOverdue ? 'bg-[var(--blue)]' :
+                            'bg-[var(--violet)]'
+                          }`} />
                         ))}
                       </div>
                     )}
@@ -279,17 +294,21 @@ export default function CalendarView({ calendarData: initial, token, displayName
               })}
             </div>
 
-            {/* Week task list */}
             <div className="divide-y divide-[var(--border)]">
               {weekDays.map((d, i) => {
                 const dateKey = formatDateKey(d.getFullYear(), d.getMonth(), d.getDate())
                 const tasks = calendarData[dateKey] || []
                 if (tasks.length === 0) return null
                 const isToday = dateKey === todayKey
+                const { hasOverdue } = getDayStatus(dateKey, tasks)
 
                 return (
                   <div key={i} className="p-3 sm:p-4">
-                    <div className={`mb-2 text-xs font-semibold ${isToday ? 'text-[var(--violet)]' : 'text-[var(--text-dim)]'}`}>
+                    <div className={`mb-2 text-xs font-semibold ${
+                      isToday ? 'text-[var(--violet)]' :
+                      hasOverdue ? 'text-[var(--blue)]' :
+                      'text-[var(--text-dim)]'
+                    }`}>
                       {DAYS_OF_WEEK_SHORT[i]} {d.getDate()}
                     </div>
                     <div className="space-y-1">
