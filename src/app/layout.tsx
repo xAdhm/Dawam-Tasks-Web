@@ -22,6 +22,18 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: "Dawam",
   description: "Daily routines and deadlines, in one place.",
+  openGraph: {
+    title: "Dawam",
+    description: "Stay consistent, every day.",
+    url: "https://dawam-tasks.vercel.app",
+    images: [{ url: "/og_image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dawam",
+    description: "Stay consistent, every day.",
+    images: ["/og_image.png"],
+  },
 };
 
 export default function RootLayout({

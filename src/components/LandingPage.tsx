@@ -8,6 +8,13 @@ export default function LandingPage() {
   const circleRef = useRef<SVGCircleElement>(null)
 
   useEffect(() => {
+    // Silently ping the backend to wake it from Render's cold start
+    // so it's warm by the time the user logs in
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://dawam-api.onrender.com'}/actuator/health`)
+      .catch(() => {}) // ignore errors — this is just a wake-up call
+  }, [])
+
+  useEffect(() => {
     const path = pathRef.current
     const circle = circleRef.current
     if (!path || !circle) return
@@ -68,7 +75,6 @@ export default function LandingPage() {
 
       {/* Hero */}
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center sm:px-12">
-        {/* Animated Dal logo */}
         <div className="mb-10">
           <svg width="120" height="120" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" className="sm:w-[160px] sm:h-[160px]">
             <defs>
@@ -105,7 +111,6 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Feature pills */}
         <div className="mt-16 flex flex-wrap justify-center gap-3">
           {[
             '✓ Daily routines',
