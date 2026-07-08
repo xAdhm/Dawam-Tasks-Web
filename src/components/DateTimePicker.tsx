@@ -71,12 +71,16 @@ export default function DateTimePicker({ value, onChange }: Props) {
   }, [])
 
   function buildAndEmit(date: string, h: string, m: string, ap: string) {
+    console.log('buildAndEmit called with:', { date, h, m, ap })
     if (!date) return
     const hour24 = to24Hour(h, ap)
     const minutePadded = m.padStart(2, '0')
+    console.log('constructed:', `${date}T${hour24}:${minutePadded}:00`)
     const localDate = new Date(`${date}T${hour24}:${minutePadded}:00`)
     if (isNaN(localDate.getTime())) return
-    onChange(localDate.toISOString().slice(0, 19))
+    const result = localDate.toISOString().slice(0, 19)
+    console.log('emitting:', result)
+    onChange(result)
   }
 
   function handleDayClick(day: number) {
