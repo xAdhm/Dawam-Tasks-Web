@@ -133,127 +133,159 @@ export default function DateTimePicker({ value, onChange }: Props) {
     ? `${selectedDate}  ${hour}:${minute} ${ampm}`
     : ''
 
-  return (
-    <div ref={ref} className="relative mb-3">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-left text-sm outline-none text-[var(--text)]"
-      >
-        {displayValue || <span className="text-[var(--text-dim)]">Date and time (optional)</span>}
-      </button>
+  const pickerContent = (
+    <div className="p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <button type="button" onClick={prevMonth} className="px-1 text-[var(--text-dim)] hover:text-[var(--text)]">←</button>
+        <span className="text-sm font-semibold">{MONTHS[viewMonth]} {viewYear}</span>
+        <button type="button" onClick={nextMonth} className="px-1 text-[var(--text-dim)] hover:text-[var(--text)]">→</button>
+      </div>
 
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg">
-          <div className="mb-3 flex items-center justify-between">
-            <button type="button" onClick={prevMonth} className="px-1 text-[var(--text-dim)] hover:text-[var(--text)]">←</button>
-            <span className="text-sm font-semibold">{MONTHS[viewMonth]} {viewYear}</span>
-            <button type="button" onClick={nextMonth} className="px-1 text-[var(--text-dim)] hover:text-[var(--text)]">→</button>
-          </div>
+      <div className="mb-1 grid grid-cols-7 text-center">
+        {DAYS_OF_WEEK.map(d => (
+          <div key={d} className="text-[10px] font-semibold text-[var(--text-dim)]">{d}</div>
+        ))}
+      </div>
 
-          <div className="mb-1 grid grid-cols-7 text-center">
-            {DAYS_OF_WEEK.map(d => (
-              <div key={d} className="text-[10px] font-semibold text-[var(--text-dim)]">{d}</div>
-            ))}
-          </div>
+      <div className="grid grid-cols-7 gap-y-1 text-center">
+        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+          const month = String(viewMonth + 1).padStart(2, '0')
+          const dayStr = String(day).padStart(2, '0')
+          const dateStr = `${viewYear}-${month}-${dayStr}`
+          const isSelected = dateStr === selectedDate
+          const isToday = dateStr === todayLocalKey
 
-          <div className="grid grid-cols-7 gap-y-1 text-center">
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-              const month = String(viewMonth + 1).padStart(2, '0')
-              const dayStr = String(day).padStart(2, '0')
-              const dateStr = `${viewYear}-${month}-${dayStr}`
-              const isSelected = dateStr === selectedDate
-              const isToday = dateStr === todayLocalKey
-
-              return (
-                <button
-                  type="button"
-                  key={day}
-                  onClick={() => handleDayClick(day)}
-                  className={`rounded-md py-1 text-xs font-medium transition-colors ${
-                    isSelected
-                      ? 'bg-[var(--violet)] text-[var(--bg)]'
-                      : isToday
-                      ? 'border border-[var(--violet)] text-[var(--violet)]'
-                      : 'text-[var(--text)] hover:bg-[var(--border)]'
-                  }`}
-                >
-                  {day}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-xs text-[var(--text-dim)]">Time</span>
-
-            <select
-              value={hour}
-              onChange={(e) => handleHourChange(e.target.value)}
-              className="w-16 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm outline-none"
+          return (
+            <button
+              type="button"
+              key={day}
+              onClick={() => handleDayClick(day)}
+              className={`rounded-md py-1 text-xs font-medium transition-colors ${
+                isSelected
+                  ? 'bg-[var(--violet)] text-[var(--bg)]'
+                  : isToday
+                  ? 'border border-[var(--violet)] text-[var(--violet)]'
+                  : 'text-[var(--text)] hover:bg-[var(--border)]'
+              }`}
             >
-              {hours12.map(h => <option key={h} value={h}>{h}</option>)}
-            </select>
+              {day}
+            </button>
+          )
+        })}
+      </div>
 
-            <span className="text-[var(--text-dim)]">:</span>
+      <div className="mt-4 flex items-center gap-2">
+        <span className="text-xs text-[var(--text-dim)]">Time</span>
 
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={2}
-              value={minute}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '').slice(0, 2)
-                handleMinuteChange(val)
-              }}
-              onBlur={() => {
-                const padded = minute.padStart(2, '0')
-                const clamped = Math.min(parseInt(padded) || 0, 59)
-                const final = String(clamped).padStart(2, '0')
-                setMinute(final)
-                buildAndEmit(selectedDate, hour, final, ampm)
-              }}
-              placeholder="00"
-              className="w-14 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-center text-sm outline-none"
-            />
+        <select
+          value={hour}
+          onChange={(e) => handleHourChange(e.target.value)}
+          className="w-16 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm outline-none"
+        >
+          {hours12.map(h => <option key={h} value={h}>{h}</option>)}
+        </select>
 
-            <div className="flex rounded-lg border border-[var(--border)] overflow-hidden text-xs font-semibold">
+        <span className="text-[var(--text-dim)]">:</span>
+
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={2}
+          value={minute}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, '').slice(0, 2)
+            handleMinuteChange(val)
+          }}
+          onBlur={() => {
+            const padded = minute.padStart(2, '0')
+            const clamped = Math.min(parseInt(padded) || 0, 59)
+            const final = String(clamped).padStart(2, '0')
+            setMinute(final)
+            buildAndEmit(selectedDate, hour, final, ampm)
+          }}
+          placeholder="00"
+          className="w-14 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-center text-sm outline-none"
+        />
+
+        <div className="flex rounded-lg border border-[var(--border)] overflow-hidden text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => handleAmpmToggle('AM')}
+            className={`px-2.5 py-1.5 ${ampm === 'AM' ? 'bg-[var(--violet)] text-[var(--bg)]' : 'text-[var(--text-dim)]'}`}
+          >
+            AM
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAmpmToggle('PM')}
+            className={`px-2.5 py-1.5 ${ampm === 'PM' ? 'bg-[var(--violet)] text-[var(--bg)]' : 'text-[var(--text-dim)]'}`}
+          >
+            PM
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex justify-between">
+        <button
+          type="button"
+          onClick={clear}
+          className="text-xs text-[var(--text-dim)] hover:text-[var(--text)]"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="rounded-lg bg-[var(--violet)] px-3 py-1.5 text-xs font-medium text-[var(--bg)]"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      <div ref={ref} className="relative mb-3">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-left text-sm outline-none text-[var(--text)]"
+        >
+          {displayValue || <span className="text-[var(--text-dim)]">Date and time (optional)</span>}
+        </button>
+
+        {/* Desktop dropdown */}
+        {open && (
+          <div className="hidden sm:block absolute z-50 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg">
+            {pickerContent}
+          </div>
+        )}
+      </div>
+
+      {/* Mobile bottom sheet */}
+      {open && (
+        <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setOpen(false)}
+          />
+          <div className="relative rounded-t-2xl bg-[var(--surface)] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <span className="text-sm font-semibold">Pick date & time</span>
               <button
                 type="button"
-                onClick={() => handleAmpmToggle('AM')}
-                className={`px-2.5 py-1.5 ${ampm === 'AM' ? 'bg-[var(--violet)] text-[var(--bg)]' : 'text-[var(--text-dim)]'}`}
+                onClick={() => setOpen(false)}
+                className="text-[var(--text-dim)] hover:text-[var(--text)]"
               >
-                AM
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAmpmToggle('PM')}
-                className={`px-2.5 py-1.5 ${ampm === 'PM' ? 'bg-[var(--violet)] text-[var(--bg)]' : 'text-[var(--text-dim)]'}`}
-              >
-                PM
+                ✕
               </button>
             </div>
-          </div>
-
-          <div className="mt-4 flex justify-between">
-            <button
-              type="button"
-              onClick={clear}
-              className="text-xs text-[var(--text-dim)] hover:text-[var(--text)]"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-lg bg-[var(--violet)] px-3 py-1.5 text-xs font-medium text-[var(--bg)]"
-            >
-              Done
-            </button>
+            {pickerContent}
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
