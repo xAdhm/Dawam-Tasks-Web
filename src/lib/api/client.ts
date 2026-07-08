@@ -103,6 +103,8 @@ export const api = {
       body: JSON.stringify({ targetSectionId }),
     }),
 
-  getCalendar: (start: string, end: string, token: string) =>
-    apiFetch<Record<string, Task[]>>(`/calendar?start=${start}&end=${end}`, token),
+  getCalendar: (start: string, end: string, token: string) => {
+    const timezone = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    return apiFetch<Record<string, Task[]>>(`/calendar?start=${start}&end=${end}&timezone=${timezone}`, token)
+  },
 }
