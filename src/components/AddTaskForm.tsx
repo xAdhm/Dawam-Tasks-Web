@@ -75,7 +75,7 @@ export default function AddTaskForm({ sectionId, token, task, onCreated, onUpdat
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="w-full max-w-md rounded-t-2xl bg-[var(--surface)] p-5 sm:rounded-2xl">
+      <div className="w-full max-w-md h-full overflow-y-auto bg-[var(--surface)] p-5 sm:h-auto sm:rounded-2xl">
         <h3 className="mb-4 text-base font-semibold">{isEditing ? 'Edit task' : 'New task'}</h3>
 
         <input
