@@ -271,7 +271,7 @@ export default function DateTimePicker({ value, onChange }: Props) {
             className="absolute inset-0 bg-black/50"
             onClick={() => setOpen(false)}
           />
-          <div className="relative rounded-t-2xl bg-[var(--surface)] max-h-[90vh] overflow-y-auto">
+          <div className="relative rounded-t-2xl bg-[var(--surface)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <span className="text-sm font-semibold">Pick date & time</span>
               <button
