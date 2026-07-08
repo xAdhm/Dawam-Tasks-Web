@@ -375,7 +375,7 @@ export default function TodayView({ sectionsWithTasks: initial, token, userEmail
         )}
 
         <header className="mb-6 flex items-baseline justify-between sm:mb-8">
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Yallah, {displayName}</h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Hey, {displayName}</h1>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[var(--text-dim)] sm:text-sm">{todayName}</span>
             <button
