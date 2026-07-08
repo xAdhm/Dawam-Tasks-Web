@@ -40,8 +40,7 @@ function to12Hour(hour24: string): { hour: string; ampm: string } {
 export default function DateTimePicker({ value, onChange }: Props) {
   const today = new Date()
 
-  // Parse existing value as UTC, display in local time
-  const parsedDate = value ? new Date(value) : null
+  const parsedDate = value ? new Date(value + (value.includes('T') && !value.endsWith('Z') ? 'Z' : '')) : null
 
   const initial12 = parsedDate
     ? to12Hour(String(parsedDate.getHours()).padStart(2, '0'))
@@ -74,9 +73,9 @@ export default function DateTimePicker({ value, onChange }: Props) {
   function buildAndEmit(date: string, h: string, m: string, ap: string) {
     if (!date) return
     const hour24 = to24Hour(h, ap)
-    // Treat input as local time, convert to UTC ISO string for storage
+    // Convert local time to UTC, strip Z and ms for LocalDateTime compatibility
     const localDate = new Date(`${date}T${hour24}:${m}:00`)
-    onChange(localDate.toISOString())
+    onChange(localDate.toISOString().slice(0, 19))
   }
 
   function handleDayClick(day: number) {
@@ -145,21 +144,18 @@ export default function DateTimePicker({ value, onChange }: Props) {
 
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg">
-          {/* Month navigation */}
           <div className="mb-3 flex items-center justify-between">
             <button type="button" onClick={prevMonth} className="px-1 text-[var(--text-dim)] hover:text-[var(--text)]">←</button>
             <span className="text-sm font-semibold">{MONTHS[viewMonth]} {viewYear}</span>
             <button type="button" onClick={nextMonth} className="px-1 text-[var(--text-dim)] hover:text-[var(--text)]">→</button>
           </div>
 
-          {/* Day of week headers */}
           <div className="mb-1 grid grid-cols-7 text-center">
             {DAYS_OF_WEEK.map(d => (
               <div key={d} className="text-[10px] font-semibold text-[var(--text-dim)]">{d}</div>
             ))}
           </div>
 
-          {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-y-1 text-center">
             {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
@@ -188,7 +184,6 @@ export default function DateTimePicker({ value, onChange }: Props) {
             })}
           </div>
 
-          {/* Time selectors */}
           <div className="mt-4 flex items-center gap-2">
             <span className="text-xs text-[var(--text-dim)]">Time</span>
 
@@ -240,7 +235,6 @@ export default function DateTimePicker({ value, onChange }: Props) {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="mt-4 flex justify-between">
             <button
               type="button"
