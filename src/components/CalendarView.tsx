@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { api } from '@/lib/api/client'
 import type { Task } from '@/lib/api/types'
@@ -9,11 +9,8 @@ import TopBar from './TopBar'
 import Sidebar from './Sidebar'
 
 interface Props {
-  calendarData: Record<string, Task[]>
   token: string
   displayName: string
-  initialYear: number
-  initialMonth: number
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -40,24 +37,26 @@ function formatDateKey(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-export default function CalendarView({ calendarData: initial, token, displayName, initialYear, initialMonth }: Props) {
-  const [calendarData, setCalendarData] = useState(initial)
-  const [year, setYear] = useState(initialYear)
-  const [month, setMonth] = useState(initialMonth)
-  const [loading, setLoading] = useState(false)
+export default function CalendarView({ token, displayName }: Props) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const [calendarData, setCalendarData] = useState<Record<string, Task[]>>({})
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+  const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [view, setView] = useState<'month' | 'week'>('month')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate())
 
   async function fetchMonth(y: number, m: number) {
     setLoading(true)
-    const start = new Date(y, m, 1).toISOString().slice(0, 10)
-    const end = new Date(y, m + 1, 0).toISOString().slice(0, 10)
+    const start = `${y}-${String(m + 1).padStart(2, '0')}-01`
+    const daysInLastMonth = new Date(y, m + 1, 0).getDate()
+    const end = `${y}-${String(m + 1).padStart(2, '0')}-${String(daysInLastMonth).padStart(2, '0')}`
     try {
       const data = await api.getCalendar(start, end, token)
       setCalendarData(data)
@@ -67,6 +66,10 @@ export default function CalendarView({ calendarData: initial, token, displayName
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchMonth(year, month)
+  }, [])
 
   function prevMonth() {
     const newMonth = month === 0 ? 11 : month - 1
@@ -146,7 +149,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} displayName={displayName} />
 
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 md:max-w-4xl">
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={prevMonth} className="text-[var(--text-dim)] hover:text-[var(--text)]">←</button>
@@ -184,8 +186,7 @@ export default function CalendarView({ calendarData: initial, token, displayName
           <div className="mb-4 text-center text-sm text-[var(--text-dim)]">Loading...</div>
         )}
 
-        {/* Month view */}
-        {view === 'month' && (
+        {!loading && view === 'month' && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
             <div className="grid grid-cols-7 border-b border-[var(--border)]">
               {DAYS_OF_WEEK_SHORT.map((d) => (
@@ -250,8 +251,7 @@ export default function CalendarView({ calendarData: initial, token, displayName
           </div>
         )}
 
-        {/* Week view */}
-        {view === 'week' && (
+        {!loading && view === 'week' && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
             <div className="grid grid-cols-7 border-b border-[var(--border)]">
               {weekDays.map((d, i) => {
@@ -343,7 +343,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
           </div>
         )}
 
-        {/* Selected day panel */}
         {selectedDate && (
           <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="mb-3 flex items-center justify-between">
