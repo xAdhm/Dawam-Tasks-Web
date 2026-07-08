@@ -51,7 +51,7 @@ export default function AddTaskForm({ sectionId, token, task, onCreated, onUpdat
     const payload = {
       title: title.trim(),
       type,
-      dueDate: type === 'ONE_TIME' ? (dueDateTime ? `${dueDateTime}:00` : null) : null,
+      dueDate: type === 'ONE_TIME' ? (dueDateTime || null) : null,
       frequency: type === 'RECURRING' ? frequency : null,
       daysOfWeek: type === 'RECURRING' && frequency === 'SPECIFIC_DAYS' ? selectedDays : null,
     }
