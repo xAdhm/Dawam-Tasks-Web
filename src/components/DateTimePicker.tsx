@@ -73,8 +73,9 @@ export default function DateTimePicker({ value, onChange }: Props) {
   function buildAndEmit(date: string, h: string, m: string, ap: string) {
     if (!date) return
     const hour24 = to24Hour(h, ap)
-    // Convert local time to UTC, strip Z and ms for LocalDateTime compatibility
-    const localDate = new Date(`${date}T${hour24}:${m}:00`)
+    const minutePadded = m.padStart(2, '0')
+    const localDate = new Date(`${date}T${hour24}:${minutePadded}:00`)
+    if (isNaN(localDate.getTime())) return
     onChange(localDate.toISOString().slice(0, 19))
   }
 
