@@ -66,8 +66,10 @@ export default function DateTimePicker({ value, onChange }: Props) {
         setOpen(false)
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    if (typeof window !== 'undefined' && window.innerWidth >= 640) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   function buildAndEmit(date: string, h: string, m: string, ap: string) {
