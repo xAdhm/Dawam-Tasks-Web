@@ -14,8 +14,9 @@ export function dueLabel(dateStr: string): string {
   const diffDays = Math.floor(diffMs / 86400000)
 
   if (diffMs < 0) {
-    const absDays = Math.abs(diffDays)
-    if (absDays === 0) return 'Overdue today'
+    const absHours = Math.abs(diffMs) / 3600000
+    if (absHours < 24) return 'Overdue today'
+    const absDays = Math.floor(Math.abs(diffMs) / 86400000)
     return `${absDays}d overdue`
   }
   if (diffMins < 60) return `${diffMins}m`
