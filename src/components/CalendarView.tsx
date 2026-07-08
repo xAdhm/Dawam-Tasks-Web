@@ -85,15 +85,17 @@ export default function CalendarView({ calendarData: initial, token, displayName
   }
 
   async function handleToggle(task: Task) {
-    const sectionId = task.sectionId
     const taskId = task.id
+    const sectionId = task.sectionId
 
     setCalendarData((prev) => {
-      const next = { ...prev }
-      for (const key in next) {
-        next[key] = next[key].map((t) =>
-          t.id === taskId ? { ...t, doneToday: !t.doneToday } : t
-        )
+      const next: Record<string, Task[]> = {}
+      for (const key in prev) {
+        const tasks = prev[key]
+        const hasTask = tasks.some((t) => t.id === taskId)
+        next[key] = hasTask
+          ? tasks.map((t) => t.id === taskId ? { ...t, doneToday: !t.doneToday } : t)
+          : tasks
       }
       return next
     })
@@ -102,11 +104,13 @@ export default function CalendarView({ calendarData: initial, token, displayName
       await api.toggleTask(sectionId, taskId, token)
     } catch (err) {
       setCalendarData((prev) => {
-        const next = { ...prev }
-        for (const key in next) {
-          next[key] = next[key].map((t) =>
-            t.id === taskId ? { ...t, doneToday: !t.doneToday } : t
-          )
+        const next: Record<string, Task[]> = {}
+        for (const key in prev) {
+          const tasks = prev[key]
+          const hasTask = tasks.some((t) => t.id === taskId)
+          next[key] = hasTask
+            ? tasks.map((t) => t.id === taskId ? { ...t, doneToday: !t.doneToday } : t)
+            : tasks
         }
         return next
       })
@@ -202,7 +206,6 @@ export default function CalendarView({ calendarData: initial, token, displayName
                 const tasks = calendarData[dateKey] || []
                 const isSelected = dateKey === selectedDate
                 const { isToday, hasOverdue, isPast } = getDayStatus(dateKey, tasks)
-                const isCurrentMonth = true
                 const dimmed = isPast && !isToday
 
                 return (
