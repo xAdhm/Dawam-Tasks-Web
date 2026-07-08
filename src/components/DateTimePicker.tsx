@@ -39,6 +39,8 @@ function to12Hour(hour24: string): { hour: string; ampm: string } {
 
 export default function DateTimePicker({ value, onChange }: Props) {
   const today = new Date()
+
+  // Parse existing value as UTC, display in local time
   const parsedDate = value ? new Date(value) : null
 
   const initial12 = parsedDate
@@ -48,7 +50,11 @@ export default function DateTimePicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const [viewYear, setViewYear] = useState(parsedDate?.getFullYear() ?? today.getFullYear())
   const [viewMonth, setViewMonth] = useState(parsedDate?.getMonth() ?? today.getMonth())
-  const [selectedDate, setSelectedDate] = useState<string>(value ? value.slice(0, 10) : '')
+  const [selectedDate, setSelectedDate] = useState<string>(
+    parsedDate
+      ? `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`
+      : ''
+  )
   const [hour, setHour] = useState(initial12.hour)
   const [minute, setMinute] = useState(parsedDate ? String(parsedDate.getMinutes()).padStart(2, '0') : '00')
   const [ampm, setAmpm] = useState(initial12.ampm)
@@ -68,7 +74,9 @@ export default function DateTimePicker({ value, onChange }: Props) {
   function buildAndEmit(date: string, h: string, m: string, ap: string) {
     if (!date) return
     const hour24 = to24Hour(h, ap)
-    onChange(`${date}T${hour24}:${m}`)
+    // Treat input as local time, convert to UTC ISO string for storage
+    const localDate = new Date(`${date}T${hour24}:${m}:00`)
+    onChange(localDate.toISOString())
   }
 
   function handleDayClick(day: number) {
@@ -85,7 +93,6 @@ export default function DateTimePicker({ value, onChange }: Props) {
   }
 
   function handleMinuteChange(m: string) {
-    // Allow only 0-9 in first char, enforce 2 digit valid minute
     setMinute(m)
     if (m.length === 2 && parseInt(m) <= 59) {
       buildAndEmit(selectedDate, hour, m, ampm)
@@ -119,6 +126,8 @@ export default function DateTimePicker({ value, onChange }: Props) {
   const daysInMonth = getDaysInMonth(viewYear, viewMonth)
   const firstDay = getFirstDayOfMonth(viewYear, viewMonth)
   const hours12 = Array.from({ length: 12 }, (_, i) => String(i + 1))
+
+  const todayLocalKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
   const displayValue = selectedDate
     ? `${selectedDate}  ${hour}:${minute} ${ampm}`
@@ -158,7 +167,7 @@ export default function DateTimePicker({ value, onChange }: Props) {
               const dayStr = String(day).padStart(2, '0')
               const dateStr = `${viewYear}-${month}-${dayStr}`
               const isSelected = dateStr === selectedDate
-              const isToday = dateStr === today.toISOString().slice(0, 10)
+              const isToday = dateStr === todayLocalKey
 
               return (
                 <button
